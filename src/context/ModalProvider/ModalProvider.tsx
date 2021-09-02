@@ -15,7 +15,7 @@ type ModalState = {
   }
 }
 
-const modalMethods = {
+export const modalMethods = {
   isOpen: false,
   open: noop,
   close: noop
@@ -88,21 +88,41 @@ const reducer = (state: ModalState, action: ModalActions) => {
 // state
 const initialState = Object.freeze(MODALS)
 
+type InitialState = typeof initialState
+
+export const createModalContext = (state: InitialState) => React.createContext<InitialState>(state)
+
 // context
 export const ModalContext = React.createContext(initialState)
 
+type IModalContext = typeof ModalContext
+
+type CreateModalProviderArgs = {
+  children: React.ReactNode
+  initialState: InitialState
+  ModalContext: IModalContext
+}
+
 // provider
-export const ModalProvider = ({ children }: ModalProviderProps) => {
+export const createModalProvider = ({
+  initialState,
+  children,
+  ModalContext
+}: CreateModalProviderArgs) => {
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const [state, dispatch] = useReducer(reducer, initialState)
 
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const openFactory = useMemo(<K extends Modals>() => {
     return (name: Modals) => (props: ModalProps[K]) => dispatch({ type: OPEN_MODAL, name, props })
   }, [])
 
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const closeFactory = useMemo(() => {
     return (name: Modals) => () => dispatch({ type: CLOSE_MODAL, name })
   }, [])
 
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const value = useMemo(() => {
     const modals = Object.values(MODALS).map(modal => modal.name)
     const fns = modals.reduce((acc, cur) => {
@@ -128,6 +148,9 @@ export const ModalProvider = ({ children }: ModalProviderProps) => {
     </ModalContext.Provider>
   )
 }
+
+export const ModalProvider = ({ children }: ModalProviderProps) =>
+  createModalProvider({ initialState, children, ModalContext })
 
 // hook
 export const useModal = () => {
